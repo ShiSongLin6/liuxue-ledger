@@ -271,8 +271,11 @@ function renderDash(){
 
   const eduTag = t => /学业刚性/.test(t.type) ? '<span class="tag">学业</span>' : '';
   const line = (label, t, cls) => `<div class="row"><span class="k">${label}</span><span style="text-align:right">${esc(t.item)}${eduTag(t)} <b class="${cls}">${cls==='in'?'+':'−'}${fmt(t.cny)}</b></span></div>`;
-  const bigList = (L, sign) => { let h = ''; for (const k of ['①','②','③']) { const T = L.filter(t=>t.tier===k).sort((a,b)=>b.cny-a.cny); if (!T.length) continue;
-      h += `<div class="tier">${tierName(k)}</div>` + T.map(t=>`<div class="item"><span class="d">${dshort(t.date)}</span><span>${esc(t.item)}${eduTag(t)}</span><span class="a ${sign>0?'in':'out'}">${sign>0?'+':'−'}${fmt(t.cny)}</span></div>`).join('') } return h };
+  const bigList = (L, sign) => { let h = ''; const row = t => `<div class="item"><span class="d">${dshort(t.date)}</span><span>${esc(t.item)}${eduTag(t)}</span><span class="a ${sign>0?'in':'out'}">${sign>0?'+':'−'}${fmt(t.cny)}</span></div>`;
+      for (const k of ['①','②']) { const T = L.filter(t=>t.tier===k).sort((a,b)=>b.cny-a.cny); if (T.length) h += `<div class="tier">${tierName(k)}</div>` + T.map(row).join('') }
+      const T3 = L.filter(t=>t.tier==='③').sort((a,b)=>b.cny-a.cny);
+      if (T3.length) h += `<details class="minor" style="border-top:0"><summary>${tierName('③')} · ${T3.length} 笔 · ${sign>0?'+':'−'}${fmt(T3.reduce((a,t)=>a+t.cny,0))}</summary>${T3.map(row).join('')}</details>`;
+      return h };
   const shown = ml.filter(m=>m.cnt>0||m.income>0||m.maxOut);
   $('#months').innerHTML = shown.map((m,idx) => {
     const base = median(ml.filter(x=>x.ym<m.ym&&x.cnt>0).map(x=>x.daily));
