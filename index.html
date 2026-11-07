@@ -1,0 +1,465 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>留学记账看板</title>
+<meta name="description" content="给留学生的本地记账看板：每月生活花销、大额收支、学业成本、余额倒推对账。数据只存在你自己的浏览器里。">
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#1f2329;--sub:#646a73;--mute:#8f959e;--line:#e8eaed;--in:#1a9c5b;--out:#d83931;--warn:#b7791f;--warnbg:#fff7e6;--accent:#3370ff;--accentbg:#eef3ff;--chip:#f2f3f5}
+@media (prefers-color-scheme:dark){:root{--bg:#141517;--card:#1e1f22;--ink:#e8e9eb;--sub:#a6a9ae;--mute:#7c8087;--line:#2c2e33;--in:#3ec27f;--out:#f0605a;--warn:#f5b041;--warnbg:#3a2f17;--accent:#6e95ff;--accentbg:#1d2740;--chip:#2a2c30}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.55 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif}
+.wrap{max-width:1040px;margin:0 auto;padding:20px 16px 56px}
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+h1{font-size:22px;margin:0}
+.sub{color:var(--mute);font-size:12px}
+nav{display:flex;gap:6px;margin:18px 0 6px;flex-wrap:wrap}
+nav button{border:1px solid var(--line);background:var(--card);color:var(--sub);padding:7px 14px;border-radius:18px;cursor:pointer;font:inherit}
+nav button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+h2{font-size:16px;margin:28px 0 12px;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+h2 small{font-weight:400;color:var(--mute);font-size:12px}
+.card{background:var(--card);border-radius:14px;padding:18px 20px;border:1px solid var(--line);min-width:0}
+.grid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.kpi .l{color:var(--sub);font-size:12px}.kpi .v{font-size:clamp(18px,4.2vw,24px);font-weight:700;margin-top:4px;font-variant-numeric:tabular-nums}.kpi .s{color:var(--mute);font-size:12px;margin-top:2px}
+.months{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(300px,100%),1fr));gap:12px}
+.ym{font-weight:600;color:var(--sub)}
+.big{font-size:30px;font-weight:700;margin:6px 0 2px;font-variant-numeric:tabular-nums}
+.row{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px dashed var(--line);font-variant-numeric:tabular-nums}.row:last-child{border-bottom:0}.row .k{color:var(--sub)}
+.tag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:9px;background:var(--chip);color:var(--sub);margin-left:4px;white-space:nowrap}.tag.warn{background:var(--warnbg);color:var(--warn)}
+.in{color:var(--in)}.out{color:var(--out)}.mute{color:var(--mute)}
+.note{font-size:12px;color:var(--mute);margin-top:8px}
+.alert{background:var(--warnbg);border-radius:10px;padding:10px 12px;font-size:13px;margin-top:10px}
+.info{background:var(--accentbg);border-radius:10px;padding:10px 12px;font-size:13px}
+details{border-top:1px solid var(--line)}details:first-of-type{border-top:0}
+summary{cursor:pointer;padding:12px 0;display:flex;justify-content:space-between;gap:8px;list-style:none;font-weight:600;flex-wrap:wrap}summary::-webkit-details-marker{display:none}
+.dir{font-size:12px;color:var(--sub);margin:6px 0 2px;font-weight:600}.tier{font-size:12px;color:var(--mute);margin:8px 0 2px}
+.item{display:grid;grid-template-columns:86px 1fr auto;gap:10px;padding:6px 0;align-items:baseline}
+.item .d{color:var(--mute);font-size:12px;font-variant-numeric:tabular-nums}.item .a{font-weight:600;font-variant-numeric:tabular-nums;text-align:right}.item .m{font-size:12px;color:var(--mute)}
+.minor .item{opacity:.75;font-size:13px}.minor .item .a{font-weight:500}details.minor>summary{font-weight:400;font-size:12px;color:var(--mute);padding:6px 0}
+.bar{display:grid;grid-template-columns:96px 1fr 130px;gap:10px;align-items:center;padding:5px 0}.bar .t{height:12px;border-radius:6px;background:var(--out);opacity:.8}.bar .n{text-align:right;font-variant-numeric:tabular-nums;font-size:13px}
+table{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+th,td{text-align:right;padding:8px 6px;border-bottom:1px solid var(--line);white-space:nowrap}th{color:var(--sub);font-weight:500}
+th.l,td.l{text-align:left;white-space:normal}td.hl{background:var(--warnbg)}
+.tscroll{overflow-x:auto}
+svg text{fill:var(--mute);font-size:11px}
+form.f{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px 12px}
+label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--sub)}
+label.w2{grid-column:span 2}label.w4{grid-column:1/-1}
+input,select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 9px;min-width:0;width:100%}
+.btns{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+button.b{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:7px 14px;border-radius:8px;cursor:pointer}
+button.b.p{background:var(--accent);border-color:var(--accent);color:#fff}button.b.d{color:var(--out)}
+button.x{border:0;background:none;color:var(--mute);cursor:pointer;font:inherit;padding:2px 6px}button.x:hover{color:var(--out)}
+.hidden{display:none}
+.empty{text-align:center;padding:36px 12px;color:var(--sub)}
+footer{margin-top:40px;color:var(--mute);font-size:12px;text-align:center}
+@media (max-width:720px){.grid4{grid-template-columns:repeat(2,minmax(0,1fr))}.card{padding:14px}form.f{grid-template-columns:repeat(2,minmax(0,1fr))}label.w2{grid-column:1/-1}.item{grid-template-columns:60px 1fr auto}.bar{grid-template-columns:72px 1fr 104px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div><h1>留学记账看板</h1><div class="sub">数据只保存在你这台设备的浏览器里，不会上传到任何服务器。</div></div>
+  <div class="sub" id="stamp"></div>
+</header>
+<nav>
+  <button data-tab="dash" class="on">📊 看板</button>
+  <button data-tab="tx">✍️ 记账</button>
+  <button data-tab="snap">🏦 资产快照</button>
+  <button data-tab="set">⚙️ 设置与备份</button>
+</nav>
+
+<!-- 看板 -->
+<section id="tab-dash">
+  <div id="dash-empty" class="card empty hidden">
+    <p>还没有数据。</p>
+    <div class="btns" style="justify-content:center"><button class="b p" data-go="tx">开始记第一笔</button><button class="b" id="demo1">先看看示例数据</button></div>
+  </div>
+  <div id="dash-body">
+    <div class="grid4" id="kpis"></div>
+    <h2>每月生活花销 <small>日常 + 固定月费 + 偶发大额，不含学费住宿</small></h2>
+    <div class="months" id="months"></div>
+    <h2>总资产走势 <small>来自「资产快照」</small></h2>
+    <div class="card" id="trend"></div>
+    <h2>大额收支 <small id="tierhint"></small></h2>
+    <div class="card" id="big"></div>
+    <h2>学业刚性 <small>学费、住宿、语言班、签证——一次性，单独计</small></h2>
+    <div class="card" id="edu"></div>
+    <h2>钱花在哪 <small>按类别 · 含家庭代付</small></h2>
+    <div class="card" id="cats"></div>
+    <h2>余额倒推对账 <small>两次快照之间：余额少了多少 vs 你记了多少</small></h2>
+    <div class="card tscroll" id="rec"></div>
+  </div>
+</section>
+
+<!-- 记账 -->
+<section id="tab-tx" class="hidden">
+  <h2>记一笔</h2>
+  <div class="card">
+    <form class="f" id="txf">
+      <label>日期时间<input type="datetime-local" name="date" required></label>
+      <label class="w2">项目<input name="item" placeholder="如：Tesco 买菜" required></label>
+      <label>性质<select name="nat"></select></label>
+      <label>金额（原币）<input name="amt" type="number" step="0.01" min="0" required></label>
+      <label>币种<select name="cur"></select></label>
+      <label>实付本币（可空）<input name="paid" type="number" step="0.01" min="0" placeholder="银行实扣，含手续费"></label>
+      <label>类别<select name="cat"></select></label>
+      <label>账户<input name="acct" list="acctlist" placeholder="如：汇丰 / 中行信用卡"></label>
+      <label class="w2">备注<input name="note" placeholder="一句话说清这笔"></label>
+      <div class="btns" style="align-self:end"><button class="b p" type="submit" id="txsubmit">保存</button><button class="b hidden" type="button" id="txcancel">取消编辑</button></div>
+    </form>
+    <datalist id="acctlist"></datalist>
+    <div class="note" id="natHelp"></div>
+  </div>
+  <h2>全部流水 <small id="txcount"></small></h2>
+  <div class="card tscroll" id="txlist"></div>
+</section>
+
+<!-- 资产快照 -->
+<section id="tab-snap" class="hidden">
+  <h2>记一次资产快照 <small>建议每月末记一次：所有账户加起来一共多少钱（折成本币）</small></h2>
+  <div class="card">
+    <form class="f" id="snf">
+      <label>日期时间<input type="datetime-local" name="date" required></label>
+      <label>总资产（本币）<input name="total" type="number" step="0.01" required></label>
+      <label class="w2">备注<input name="note" placeholder="如：月末，含在途汇款 £500"></label>
+      <div class="btns"><button class="b p" type="submit">保存快照</button></div>
+    </form>
+  </div>
+  <div class="card tscroll" id="snlist" style="margin-top:12px"></div>
+</section>
+
+<!-- 设置 -->
+<section id="tab-set" class="hidden">
+  <h2>币种与汇率</h2>
+  <div class="card">
+    <form class="f" id="stf">
+      <label>本币（看板统一用它）<input name="home" maxlength="5" placeholder="CNY"></label>
+      <label>本币符号<input name="homeSym" maxlength="3" placeholder="¥"></label>
+      <label>外币（你在当地花的钱）<input name="foreign" maxlength="5" placeholder="GBP"></label>
+      <label>外币符号<input name="foreignSym" maxlength="3" placeholder="£"></label>
+      <label>汇率：1 外币 = ? 本币<input name="rate" type="number" step="0.0001" min="0"></label>
+      <label>大额档 ①（≥）<input name="t1" type="number" min="0"></label>
+      <label>千元档 ②（≥）<input name="t2" type="number" min="0"></label>
+      <label>百元档 ③（≥）<input name="t3" type="number" min="0"></label>
+      <div class="btns w4"><button class="b p" type="submit">保存设置</button><span class="sub">没填「实付本币」的外币记录，按这里的汇率折算。</span></div>
+    </form>
+  </div>
+  <h2>备份与导入</h2>
+  <div class="card">
+    <div class="btns">
+      <button class="b" id="exportJson">⬇ 导出备份（JSON）</button>
+      <button class="b" id="importJsonBtn">⬆ 导入备份</button><input type="file" id="importJson" accept=".json" class="hidden">
+      <button class="b" id="exportCsv">⬇ 导出流水（CSV）</button>
+      <button class="b" id="csvTpl">⬇ 下载 CSV 模板</button>
+      <button class="b" id="importCsvBtn">⬆ 从 CSV 导入流水</button><input type="file" id="importCsv" accept=".csv,text/csv" class="hidden">
+    </div>
+    <p class="note">CSV 列：日期,项目,金额,币种,实付本币,性质,类别,账户,备注。日期写成 2026-11-04 13:05。可以用 Excel 编辑后「另存为 CSV（UTF-8）」。</p>
+    <p class="note">换电脑或清理浏览器前，记得先导出备份。</p>
+  </div>
+  <h2>示例与清空</h2>
+  <div class="card btns">
+    <button class="b" id="demo2">载入示例数据（虚构）</button>
+    <button class="b d" id="wipe">清空全部数据</button>
+  </div>
+  <h2>口径说明</h2>
+  <div class="card" style="font-size:13px">
+    <p><b>性质</b>：收入（真正给你的钱）· 支出 · 家庭代付（家里替你付的，算你的消费、不算你账户的钱）· 过路款（别人转来、你再转走）· 资产转移（自己账户之间、换汇）。只有「收入」算进真实收入。</p>
+    <p><b>支出类型</b>（自动）：学费/语言班/住宿/签证与杂费 → 学业刚性（单独计，不算月花销）；订阅/话费 → 固定月费；餐饮/日用与个护/交通通讯/生活开销/购物 → 日常生活；其他支出 → 偶发大额。</p>
+    <p><b>月生活花销</b> = 日常生活（含家庭代付的部分）+ 固定月费 + 偶发大额。</p>
+    <p><b>余额倒推</b>：两次快照之间，倒推支出 = 期初总资产 − 期末总资产 + 期间收入 + 期间过路款进出相抵后的净额；未记录差额 = 倒推支出 − 你记了的支出。差额大说明有钱花了没记。</p>
+  </div>
+</section>
+
+<footer>留学记账看板 · 开源、无广告、无追踪 · 数据存在 localStorage</footer>
+</div>
+
+<script>
+(() => {
+const KEY = 'lx-ledger-v1';
+const NATS = ['支出','收入','家庭代付','过路款','资产转移'];
+const CATS = {
+  '支出': ['餐饮','日用与个护','交通通讯','生活开销','购物','订阅','话费','学费','语言班','住宿','签证与杂费','数码设备','旅行','其他'],
+  '收入': ['家庭支持','奖学金','兼职收入','理财收益','退款','其他'],
+  '家庭代付': ['餐饮','日用与个护','交通通讯','生活开销','购物','学费','语言班','住宿','签证与杂费','数码设备','旅行','其他'],
+  '过路款': ['他人汇入','代收代付','其他'],
+  '资产转移': ['换汇','账户互转','还信用卡','其他']
+};
+const NAT_HELP = {
+  '支出':'你自己花的钱。','收入':'真正给你的钱：家里生活费、奖学金、工资、理财收益。',
+  '家庭代付':'家里直接替你付的（亲情卡、父母转账交学费）。算你的消费，不算你账户少的钱。',
+  '过路款':'别人转给你、你再转出去的钱（代买、代充）。不算收入也不算支出。',
+  '资产转移':'自己账户之间搬钱、换汇、还信用卡。不算支出。'
+};
+const EDU = ['学费','语言班','住宿','签证与杂费'], DAILY = ['餐饮','日用与个护','交通通讯','生活开销','购物'], FIXED = ['订阅','话费'];
+const DEF = { settings:{home:'CNY',homeSym:'¥',foreign:'GBP',foreignSym:'£',rate:9,t1:10000,t2:1000,t3:100}, tx:[], snaps:[] };
+
+let S;
+function load(){ try{ S = JSON.parse(localStorage.getItem(KEY)) || null }catch(e){ S = null } if(!S) S = structuredClone(DEF); S.settings = {...DEF.settings, ...S.settings}; S.tx ??= []; S.snaps ??= []; }
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)) }catch(e){ alert('保存失败：浏览器不允许本地存储（可能是无痕模式）。请导出备份。') } }
+load();
+
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const esc = t => String(t ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const num = v => { const x = parseFloat(v); return isNaN(x) ? 0 : x };
+const fmt = (v,d=0) => (v<0?'−':'') + S.settings.homeSym + Math.abs(v).toLocaleString('zh-CN',{minimumFractionDigits:d,maximumFractionDigits:d});
+const ffmt = v => S.settings.foreignSym + Math.abs(v).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2});
+const dshort = s => { const m = String(s||'').match(/(\d{4})-(\d\d)-(\d\d)[T ](\d\d):(\d\d)/); if(!m) return String(s||'').slice(5,10); return `${m[2]}-${m[3]}` + ((m[4]!=='00'||m[5]!=='00') ? ` ${m[4]}:${m[5]}` : '') };
+const uid = () => Math.random().toString(36).slice(2,10) + Date.now().toString(36).slice(-4);
+const nowLocal = () => { const d = new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,16) };
+
+// ---------- derived ----------
+function derive(t){
+  const st = S.settings;
+  const home = t.cur === st.home;
+  const cny = t.paid ? num(t.paid) : num(t.amt) * (home ? 1 : num(st.rate));
+  let type = '不计';
+  if (t.nat === '支出') type = EDU.includes(t.cat) ? '学业刚性' : FIXED.includes(t.cat) ? '固定月费' : DAILY.includes(t.cat) ? '日常生活' : '偶发大额';
+  else if (t.nat === '家庭代付') type = EDU.includes(t.cat) ? '学业刚性（家庭代付）' : DAILY.includes(t.cat) ? '日常生活（家庭代付）' : '家庭代付（其他）';
+  const dir = t.nat === '收入' ? '入账' : t.nat === '支出' ? '出账' : '不计';
+  const signed = dir === '入账' ? cny : dir === '出账' ? -cny : 0;
+  let tier = '— 不计';
+  if (dir !== '不计') tier = cny >= st.t1 ? '①' : cny >= st.t2 ? '②' : cny >= st.t3 ? '③' : '④';
+  return {...t, cny, type, dir, signed, tier, ym: String(t.date||'').slice(0,7), foreignAmt: home ? 0 : num(t.amt)};
+}
+const LIVING = t => /^日常生活/.test(t.type) || t.type === '固定月费' || t.type === '偶发大额';
+const median = a => { if(!a.length) return null; const s=[...a].sort((x,y)=>x-y), k=s.length>>1; return s.length%2 ? s[k] : (s[k-1]+s[k])/2 };
+const tierName = k => { const st=S.settings; return {'①':`① 上万（≥${fmt(st.t1)}）`,'②':`② 千元级（≥${fmt(st.t2)}）`,'③':`③ 百元级（≥${fmt(st.t3)}）`}[k] };
+
+// ---------- dashboard ----------
+function renderDash(){
+  const tx = S.tx.map(derive).sort((a,b)=>a.date<b.date?-1:1);
+  const snaps = [...S.snaps].sort((a,b)=>a.date<b.date?-1:1);
+  const empty = !tx.length && !snaps.length;
+  $('#dash-empty').classList.toggle('hidden', !empty); $('#dash-body').classList.toggle('hidden', empty);
+  $('#stamp').textContent = tx.length ? `${tx.length} 笔流水 · ${snaps.length} 次快照` : '';
+  if (empty) return;
+  const st = S.settings;
+  $('#tierhint').textContent = `按月 · ${tierName('①')} ${tierName('②')} ${tierName('③')}（次级，默认折叠）`;
+
+  const months = {};
+  for (const t of tx) {
+    if (!t.ym) continue;
+    const m = months[t.ym] ??= {ym:t.ym,daily:0,dailyFam:0,fixed:0,occ:0,fLiving:0,income:0,pass:0,fam:0,largest:null,cnt:0};
+    if (LIVING(t)) { m.cnt++; if (/^日常生活/.test(t.type)) { m.daily += t.cny; if (/家庭代付/.test(t.type)) m.dailyFam += t.cny } else if (t.type==='固定月费') m.fixed += t.cny; else m.occ += t.cny; m.fLiving += t.foreignAmt; if (!m.largest || t.cny > m.largest.cny) m.largest = t }
+    if (t.nat==='收入') m.income += t.cny; if (t.nat==='过路款') m.pass += t.cny; if (t.nat==='家庭代付') m.fam += t.cny;
+  }
+  const ml = Object.values(months).sort((a,b)=>a.ym<b.ym?1:-1); ml.forEach(m => m.living = m.daily + m.fixed + m.occ);
+  const cur = ml[0] || {ym:'—',living:0,income:0,pass:0,fLiving:0};
+  const latest = snaps[snaps.length-1];
+  const eduTotal = tx.filter(t=>/学业刚性/.test(t.type)).reduce((a,t)=>a+t.cny,0);
+  const livingMonths = ml.filter(m=>m.cnt>0).map(m=>m.living);
+  const livingCount = tx.filter(LIVING).length;
+  const medLiving = median(livingMonths);
+  const runway = (latest && livingMonths.length>=3 && livingCount>=60 && medLiving) ? latest.total/medLiving : null;
+
+  $('#kpis').innerHTML = [
+    ['当前总资产', latest ? fmt(num(latest.total)) : '—', latest ? `快照 ${String(latest.date).slice(0,10)}` : '去「资产快照」记一次'],
+    [`${cur.ym} 生活花销`, fmt(cur.living), cur.fLiving ? `其中 ${st.foreign} ${ffmt(cur.fLiving)}` : ''],
+    [`${cur.ym} 真实收入`, `<span class="in">${fmt(cur.income)}</span>`, cur.pass ? `不计过路款 ${fmt(cur.pass)}` : ''],
+    ['学业总成本', fmt(eduTotal), '含家庭代付']
+  ].map(([l,v,s]) => `<div class="card kpi"><div class="l">${l}</div><div class="v">${v}</div><div class="s">${s}</div></div>`).join('');
+
+  $('#months').innerHTML = ml.filter(m=>m.cnt>0||m.income>0).map(m => {
+    const base = median(ml.filter(x=>x.ym<m.ym&&x.cnt>0).map(x=>x.daily));
+    let cmp = '<span class="tag">暂无基线</span>';
+    if (base) { const p=(m.daily-base)/base*100; cmp = `<span class="tag ${Math.abs(p)>30?'warn':''}">日常 vs 基线 ${p>=0?'↑':'↓'}${Math.abs(p).toFixed(0)}%</span>` }
+    return `<div class="card"><div class="ym">${m.ym}</div>
+      <div class="big out">${fmt(m.living)}</div><div class="mute" style="font-size:12px">本月生活花销${m.fLiving?` · ${st.foreign} ${ffmt(m.fLiving)}`:''} ${cmp}</div>
+      <div style="margin-top:10px">
+        <div class="row"><span class="k">🍚 日常生活</span><span>${fmt(m.daily,2)}</span></div>
+        <div class="row"><span class="k">🔁 固定月费</span><span>${fmt(m.fixed,2)}</span></div>
+        <div class="row"><span class="k">🛍 偶发大额</span><span>${fmt(m.occ,2)}</span></div>
+        ${m.dailyFam?`<div class="row"><span class="k">其中家庭代付</span><span class="mute">${fmt(m.dailyFam,2)}</span></div>`:''}
+        <div class="row"><span class="k">💰 真实收入</span><span class="in">${fmt(m.income,2)}</span></div>
+        ${(m.pass||m.fam)?`<div class="row"><span class="k mute">不计：过路款 / 家庭代付</span><span class="mute">${fmt(m.pass)} / ${fmt(m.fam)}</span></div>`:''}
+        ${m.largest?`<div class="row"><span class="k">最大一笔生活支出</span><span>${esc(m.largest.item)} · ${fmt(m.largest.cny)}</span></div>`:''}
+      </div></div>`;
+  }).join('') + `<div class="card"><div class="ym">按此速度还能撑</div>
+      <div class="big">${runway ? runway.toFixed(1)+' 个月' : '<span class="mute" style="font-size:20px">数据还不够</span>'}</div>
+      <div class="mute" style="font-size:12px">= 当前总资产 ÷ 月生活花销中位数${medLiving?`（${fmt(medLiving)}）`:''}</div>
+      ${runway ? '' : `<div class="alert">需要至少 3 个月、约 60 笔日常记录，以及一次资产快照，才会显示（现在 ${livingMonths.length} 个月、${livingCount} 笔）。记得少了算出来会严重偏高。</div>`}</div>`;
+
+  // trend
+  if (snaps.length < 2) $('#trend').innerHTML = `<div class="empty">至少记两次资产快照才有走势。</div>`;
+  else {
+    const W=960,H=240,P={l:64,r:24,t:26,b:32};
+    const xs = snaps.map(s=>new Date(s.date).getTime()), x0=Math.min(...xs), x1=Math.max(...xs)||x0+1;
+    const ymax = Math.max(...snaps.map(s=>num(s.total)))*1.1 || 1;
+    const X = t => P.l + (t-x0)/((x1-x0)||1)*(W-P.l-P.r), Y = v => P.t + (1-v/ymax)*(H-P.t-P.b);
+    const unit = ymax >= 1e5 ? [1e4,'万'] : [1,''];
+    let g=''; for(let i=0;i<=4;i++){const v=ymax*i/4; g+=`<line x1="${P.l}" x2="${W-P.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)"/><text x="${P.l-8}" y="${Y(v)+4}" text-anchor="end">${(v/unit[0]).toFixed(unit[1]?0:0)}${unit[1]}</text>`}
+    const px = xs.map(X), show = px.map(()=>false); let nx = Infinity; for (let i=px.length-1;i>=0;i--) if (nx-px[i]>=70){show[i]=true;nx=px[i]}
+    const pts = snaps.map((s,i)=>`${px[i]},${Y(num(s.total))}`).join(' ');
+    const dots = snaps.map((s,i)=>{const cy=Y(num(s.total)); return `<circle cx="${px[i]}" cy="${cy}" r="4" fill="var(--accent)"><title>${esc(String(s.date).slice(0,10))}：${fmt(num(s.total))}</title></circle>`+(show[i]?`<text x="${px[i]}" y="${cy-10}" text-anchor="middle" style="fill:var(--ink)">${(num(s.total)/unit[0]).toFixed(unit[1]?1:0)}${unit[1]}</text><text x="${px[i]}" y="${H-10}" text-anchor="middle">${String(s.date).slice(5,10)}</text>`:'')}).join('');
+    $('#trend').innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="总资产走势">${g}<polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="2.5"/>${dots}</svg>`;
+  }
+
+  // big list
+  const bigRows = tx.filter(t=>['①','②','③'].includes(t.tier)), by = {};
+  bigRows.forEach(t=>(by[t.ym] ??= []).push(t));
+  const it = t => `<div class="item"><span class="d">${dshort(t.date)}</span><span>${esc(t.item)}<span class="tag">${esc(t.cat)}</span>${t.note?`<div class="m">${esc(t.note)}</div>`:''}</span><span class="a ${t.signed>=0?'in':'out'}">${t.signed>=0?'+':''}${fmt(t.signed)}</span></div>`;
+  const yms = Object.keys(by).sort().reverse();
+  $('#big').innerHTML = yms.length ? yms.map((ym,i) => {
+    const L = by[ym], inS = L.filter(t=>t.dir==='入账').reduce((a,t)=>a+t.signed,0), outS = L.filter(t=>t.dir==='出账').reduce((a,t)=>a+t.signed,0);
+    const sec = dir => { const D = L.filter(t=>t.dir===dir); if(!D.length) return ''; let h = `<div class="dir">${dir==='入账'?'⬇ 入账':'⬆ 出账'}</div>`;
+      for (const k of ['①','②']) { const T = D.filter(t=>t.tier===k).sort((a,b)=>b.cny-a.cny); if (T.length) h += `<div class="tier">${tierName(k)}</div>` + T.map(it).join('') }
+      const m3 = D.filter(t=>t.tier==='③'); if (m3.length) h += `<details class="minor"><summary>${tierName('③')} · ${m3.length} 笔 · ${fmt(m3.reduce((a,t)=>a+t.signed,0))}</summary>${m3.map(it).join('')}</details>`; return h };
+    return `<details ${i<2?'open':''}><summary><span>${ym}</span><span><span class="in">入 ${fmt(inS)}</span> · <span class="out">出 ${fmt(outS)}</span></span></summary>${sec('入账')}${sec('出账')}</details>`;
+  }).join('') : '<div class="empty">还没有达到百元档的收支。</div>';
+
+  // edu
+  const E = tx.filter(t=>/学业刚性/.test(t.type));
+  $('#edu').innerHTML = E.length ? E.map(t=>`<div class="item"><span class="d">${dshort(t.date)}</span><span>${esc(t.item)}<span class="tag">${esc(t.cat)}</span>${/家庭代付/.test(t.type)?'<span class="tag">家庭代付</span>':''}</span><span class="a">${fmt(t.cny)}</span></div>`).join('') + `<div class="row" style="margin-top:6px;font-weight:700"><span>合计</span><span>${fmt(eduTotal)}</span></div><div class="note">学业刚性不计入每月生活花销。</div>` : '<div class="empty">还没有学费、住宿等记录。</div>';
+
+  // cats
+  const c = {}; tx.filter(t=>t.nat==='支出'||t.nat==='家庭代付').forEach(t => c[t.cat||'未分类'] = (c[t.cat||'未分类']||0) + t.cny);
+  const CL = Object.entries(c).sort((a,b)=>b[1]-a[1]), tot = CL.reduce((a,[,v])=>a+v,0), mx = CL[0]?.[1] || 1;
+  $('#cats').innerHTML = CL.length ? CL.map(([k,v])=>`<div class="bar"><span>${esc(k)}</span><div><div class="t" style="width:${Math.max(1,v/mx*100)}%"></div></div><span class="n">${fmt(v)} · ${(v/tot*100).toFixed(1)}%</span></div>`).join('') : '<div class="empty">还没有支出。</div>';
+
+  // reconciliation
+  if (snaps.length < 2) $('#rec').innerHTML = '<div class="empty">至少记两次资产快照才能倒推对账。建议每月末记一次。</div>';
+  else {
+    let rows = '';
+    for (let i=1;i<snaps.length;i++){
+      const a = snaps[i-1], b = snaps[i];
+      const inP = tx.filter(t=>t.date>a.date && t.date<=b.date);
+      const income = inP.filter(t=>t.nat==='收入').reduce((s,t)=>s+t.cny,0);
+      const recorded = inP.filter(t=>t.nat==='支出').reduce((s,t)=>s+t.cny,0);
+      const implied = num(a.total) - num(b.total) + income;
+      const gap = implied - recorded, days = Math.max(1, Math.round((new Date(b.date)-new Date(a.date))/864e5));
+      const rate = implied > 0 ? Math.max(0, gap)/implied : null;
+      rows += `<tr><td class="l">${String(a.date).slice(5,10)} → ${String(b.date).slice(5,10)}</td><td>${days}</td><td>${fmt(income)}</td><td>${fmt(recorded)}</td><td>${fmt(implied)}</td><td class="${Math.abs(gap)>=Math.max(50,implied*0.1)?'hl':''}">${fmt(gap)}</td><td>${rate===null?'—':(rate*100).toFixed(0)+'%'}</td></tr>`;
+    }
+    $('#rec').innerHTML = `<table><thead><tr><th class="l">期间</th><th>天数</th><th>期间收入</th><th>已记录支出</th><th>倒推支出</th><th>未记录差额</th><th>漏记率</th></tr></thead><tbody>${rows}</tbody></table>
+      <div class="note">倒推支出 = 期初总资产 − 期末总资产 + 期间收入。差额为正：有钱花了没记；为负：有收入没记，或快照漏了账户。汇率变动也会造成小差额。</div>`;
+  }
+}
+
+// ---------- tx tab ----------
+const txf = $('#txf'); let editing = null;
+function fillSelects(){
+  const st = S.settings;
+  txf.nat.innerHTML = NATS.map(n=>`<option>${n}</option>`).join('');
+  txf.cur.innerHTML = [st.foreign, st.home].filter((v,i,a)=>v&&a.indexOf(v)===i).map(c=>`<option>${esc(c)}</option>`).join('');
+  fillCats();
+}
+function fillCats(){ const keep = txf.cat.value; txf.cat.innerHTML = CATS[txf.nat.value].map(c=>`<option>${c}</option>`).join(''); if (CATS[txf.nat.value].includes(keep)) txf.cat.value = keep; $('#natHelp').textContent = NAT_HELP[txf.nat.value] }
+txf.nat.addEventListener('change', fillCats);
+function resetTxForm(){ txf.reset(); editing = null; txf.date.value = nowLocal(); fillSelects(); $('#txsubmit').textContent='保存'; $('#txcancel').classList.add('hidden') }
+txf.addEventListener('submit', e => {
+  e.preventDefault();
+  const f = Object.fromEntries(new FormData(txf));
+  const rec = {id: editing || uid(), date:f.date, item:f.item.trim(), nat:f.nat, amt:num(f.amt), cur:f.cur, paid:f.paid?num(f.paid):'', cat:f.cat, acct:f.acct.trim(), note:f.note.trim()};
+  if (editing) S.tx = S.tx.map(t=>t.id===editing?rec:t); else S.tx.push(rec);
+  save(); resetTxForm(); renderAll();
+});
+$('#txcancel').addEventListener('click', resetTxForm);
+function renderTx(){
+  const L = S.tx.map(derive).sort((a,b)=>a.date<b.date?1:-1);
+  $('#txcount').textContent = `${L.length} 笔`;
+  $('#acctlist').innerHTML = [...new Set(S.tx.map(t=>t.acct).filter(Boolean))].map(a=>`<option value="${esc(a)}">`).join('');
+  $('#txlist').innerHTML = L.length ? `<table><thead><tr><th class="l">日期</th><th class="l">项目</th><th class="l">性质 · 类别</th><th>原币</th><th>折本币</th><th class="l">账户</th><th></th></tr></thead><tbody>` +
+    L.map(t=>`<tr><td class="l">${dshort(t.date)}</td><td class="l">${esc(t.item)}${t.note?`<div class="sub">${esc(t.note)}</div>`:''}</td><td class="l">${esc(t.nat)} · ${esc(t.cat)}<div class="sub">${esc(t.type)}</div></td><td>${num(t.amt).toFixed(2)} ${esc(t.cur)}</td><td class="${t.dir==='入账'?'in':t.dir==='出账'?'out':''}">${fmt(t.cny,2)}</td><td class="l">${esc(t.acct)}</td><td><button class="x" data-edit="${t.id}">改</button><button class="x" data-del="${t.id}">删</button></td></tr>`).join('') + '</tbody></table>'
+    : '<div class="empty">还没有流水。</div>';
+}
+$('#txlist').addEventListener('click', e => {
+  const d = e.target.dataset;
+  if (d.del && confirm('删除这一笔？')) { S.tx = S.tx.filter(t=>t.id!==d.del); save(); renderAll() }
+  if (d.edit) { const t = S.tx.find(x=>x.id===d.edit); if (!t) return; editing = t.id; fillSelects();
+    txf.date.value=t.date; txf.item.value=t.item; txf.nat.value=t.nat; fillCats(); txf.cat.value=t.cat; txf.amt.value=t.amt;
+    if (![...txf.cur.options].some(o=>o.value===t.cur)) txf.cur.insertAdjacentHTML('beforeend',`<option>${esc(t.cur)}</option>`);
+    txf.cur.value=t.cur; txf.paid.value=t.paid; txf.acct.value=t.acct; txf.note.value=t.note;
+    $('#txsubmit').textContent='保存修改'; $('#txcancel').classList.remove('hidden'); txf.scrollIntoView({behavior:'smooth'}) }
+});
+
+// ---------- snaps ----------
+const snf = $('#snf');
+snf.addEventListener('submit', e => { e.preventDefault(); const f = Object.fromEntries(new FormData(snf)); S.snaps.push({id:uid(), date:f.date, total:num(f.total), note:f.note.trim()}); save(); snf.reset(); snf.date.value = nowLocal(); renderAll() });
+function renderSnaps(){
+  const L = [...S.snaps].sort((a,b)=>a.date<b.date?1:-1);
+  $('#snlist').innerHTML = L.length ? `<table><thead><tr><th class="l">日期</th><th>总资产</th><th class="l">备注</th><th></th></tr></thead><tbody>` + L.map(s=>`<tr><td class="l">${esc(String(s.date).replace('T',' '))}</td><td>${fmt(num(s.total),2)}</td><td class="l">${esc(s.note)}</td><td><button class="x" data-sdel="${s.id}">删</button></td></tr>`).join('') + '</tbody></table>' : '<div class="empty">还没有快照。每月末把所有账户加起来记一次总数就行。</div>';
+}
+$('#snlist').addEventListener('click', e => { const id = e.target.dataset.sdel; if (id && confirm('删除这次快照？')) { S.snaps = S.snaps.filter(s=>s.id!==id); save(); renderAll() } });
+
+// ---------- settings ----------
+const stf = $('#stf');
+function fillSettings(){ for (const [k,v] of Object.entries(S.settings)) if (stf[k]) stf[k].value = v }
+stf.addEventListener('submit', e => { e.preventDefault(); const f = Object.fromEntries(new FormData(stf));
+  S.settings = {...S.settings, home:(f.home||'CNY').toUpperCase(), homeSym:f.homeSym||'¥', foreign:(f.foreign||'').toUpperCase(), foreignSym:f.foreignSym||'', rate:num(f.rate)||1, t1:num(f.t1)||10000, t2:num(f.t2)||1000, t3:num(f.t3)||100};
+  save(); fillSelects(); renderAll(); alert('已保存') });
+
+// ---------- import / export ----------
+function download(name, text, type){ const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text],{type})); a.download = name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 1000) }
+const today = () => new Date().toISOString().slice(0,10);
+$('#exportJson').onclick = () => download(`留学记账备份-${today()}.json`, JSON.stringify(S,null,2), 'application/json');
+$('#importJsonBtn').onclick = () => $('#importJson').click();
+$('#importJson').onchange = async e => { const f = e.target.files[0]; if (!f) return; try { const d = JSON.parse(await f.text()); if (!Array.isArray(d.tx)) throw 0; if (!confirm(`导入后会覆盖当前数据（${d.tx.length} 笔流水）。继续？`)) return; S = {...structuredClone(DEF), ...d, settings:{...DEF.settings, ...d.settings}}; save(); fillSettings(); fillSelects(); renderAll() } catch(err) { alert('文件格式不对') } e.target.value='' };
+const CSV_HEAD = ['日期','项目','金额','币种','实付本币','性质','类别','账户','备注'];
+const csvCell = v => { v = String(v ?? ''); return /[",\n]/.test(v) ? '"' + v.replace(/"/g,'""') + '"' : v };
+$('#exportCsv').onclick = () => download(`留学记账流水-${today()}.csv`, '\ufeff' + [CSV_HEAD, ...S.tx.map(t=>[String(t.date).replace('T',' '),t.item,t.amt,t.cur,t.paid,t.nat,t.cat,t.acct,t.note])].map(r=>r.map(csvCell).join(',')).join('\n'), 'text/csv');
+$('#csvTpl').onclick = () => download('留学记账-CSV模板.csv', '\ufeff' + [CSV_HEAD, ['2026-11-04 13:05','Tesco 买菜','12.40',S.settings.foreign,'','支出','餐饮','汇丰','示例行，导入前删掉']].map(r=>r.map(csvCell).join(',')).join('\n'), 'text/csv');
+function parseCSV(text){ const rows=[]; let row=[], cell='', q=false; text = text.replace(/^\ufeff/,'');
+  for (let i=0;i<text.length;i++){ const c=text[i];
+    if (q) { if (c==='"') { if (text[i+1]==='"') { cell+='"'; i++ } else q=false } else cell+=c }
+    else if (c==='"') q=true; else if (c===',') { row.push(cell); cell='' } else if (c==='\n'||c==='\r') { if (c==='\r'&&text[i+1]==='\n') i++; row.push(cell); rows.push(row); row=[]; cell='' } else cell+=c }
+  if (cell||row.length) { row.push(cell); rows.push(row) } return rows.filter(r=>r.some(x=>x.trim())) }
+$('#importCsvBtn').onclick = () => $('#importCsv').click();
+$('#importCsv').onchange = async e => { const f = e.target.files[0]; if (!f) return;
+  const rows = parseCSV(await f.text()); const h = rows.shift() || []; const ix = k => h.findIndex(x=>x.trim()===k);
+  if (ix('日期')<0 || ix('金额')<0) { alert('找不到「日期」「金额」列，请用模板。'); e.target.value=''; return }
+  let ok=0, bad=0;
+  for (const r of rows) { const g = k => (ix(k)>=0 ? (r[ix(k)]||'').trim() : '');
+    let date = g('日期').replace(/\//g,'-').replace(' ','T'); if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(date)) date += 'T12:00';
+    date = date.replace(/^(\d{4})-(\d{1,2})-(\d{1,2})T(\d{1,2}):(\d{2}).*$/, (m,y,mo,d,hh,mm)=>`${y}-${mo.padStart(2,'0')}-${d.padStart(2,'0')}T${hh.padStart(2,'0')}:${mm}`);
+    const amt = num(g('金额')); if (!/^\d{4}-\d\d-\d\dT\d\d:\d\d$/.test(date) || !amt) { bad++; continue }
+    const nat = NATS.includes(g('性质')) ? g('性质') : '支出';
+    S.tx.push({id:uid(), date, item:g('项目')||'(未命名)', nat, amt:Math.abs(amt), cur:(g('币种')||S.settings.foreign).toUpperCase(), paid:g('实付本币')?num(g('实付本币')):'', cat:g('类别')||'其他', acct:g('账户'), note:g('备注')}); ok++ }
+  save(); renderAll(); alert(`导入 ${ok} 笔${bad?`，跳过 ${bad} 行（日期或金额不对）`:''}`); e.target.value='' };
+$('#wipe').onclick = () => { if (confirm('清空全部流水、快照和设置？建议先导出备份。') && confirm('真的清空？无法恢复。')) { S = structuredClone(DEF); save(); fillSettings(); resetTxForm(); renderAll() } };
+
+// ---------- demo (fictional) ----------
+function demo(){
+  if ((S.tx.length || S.snaps.length) && !confirm('示例数据会替换当前数据。继续？')) return;
+  const t = (date,item,nat,amt,cur,cat,acct,note='',paid='') => ({id:uid(),date,item,nat,amt,cur,paid,cat,acct,note});
+  const G='GBP', C='CNY', tx = [
+    t('2026-05-20T10:00','语言班学费','支出',5500,G,'语言班','国内银行','暑期语言班','51150'),
+    t('2026-06-10T09:30','宿舍押金','支出',500,G,'住宿','国内银行','','4700'),
+    t('2026-08-30T11:00','宿舍全年房费','支出',8600,G,'住宿','国内银行','一次交清','79980'),
+    t('2026-09-01T09:00','签证 + IHS','家庭代付',1300,G,'签证与杂费','家庭','爸妈付的','12090'),
+    t('2026-09-25T15:00','正课学费','支出',29000,G,'学费','国内银行','全年学费','265350'),
+  ];
+  const shops = [['Tesco 买菜','餐饮',8,22],['Sainsbury\'s','餐饮',6,18],['ALDI','餐饮',5,15],['食堂午饭','餐饮',4,7],['Boots','日用与个护',3,20],['公交','交通通讯',2,5],['火车票','交通通讯',8,30],['Primark','购物',10,35]];
+  let seed = 7; const rnd = () => (seed = (seed*9301+49297)%233280)/233280;
+  for (const [y,m,n] of [[2026,9,22],[2026,10,30],[2026,11,28]]) {
+    for (let i=0;i<n;i++){ const s = shops[Math.floor(rnd()*shops.length)]; const d = 1+Math.floor(rnd()*27), hh = 9+Math.floor(rnd()*11), mm = Math.floor(rnd()*60);
+      tx.push(t(`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}T${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`, s[0], '支出', +(s[2]+rnd()*(s[3]-s[2])).toFixed(2), G, s[1], '英国借记卡')) }
+    const mm2 = String(m).padStart(2,'0');
+    tx.push(t(`${y}-${mm2}-01T08:00`,'家里生活费','收入',4000,C,'家庭支持','国内银行'));
+    tx.push(t(`${y}-${mm2}-05T00:10`,'手机套餐','支出',10,G,'话费','英国借记卡'));
+    tx.push(t(`${y}-${mm2}-06T00:10`,'音乐会员','支出',5.99,G,'订阅','英国借记卡'));
+    tx.push(t(`${y}-${mm2}-03T10:00`,'换汇到英国卡','资产转移',500,G,'换汇','国内银行','','4650'));
+  }
+  tx.push(t('2026-10-18T19:30','和朋友聚餐','家庭代付',260,C,'餐饮','亲情卡','家里付'));
+  tx.push(t('2026-11-08T14:00','笔记本电脑','支出',899,G,'数码设备','英国借记卡','旧电脑坏了'));
+  tx.push(t('2026-11-12T20:00','同学转来代买','过路款',600,C,'代收代付','国内银行','已转出'));
+  S.tx = tx;
+  S.snaps = [{id:uid(),date:'2026-09-30T23:00',total:142000,note:'月末'},{id:uid(),date:'2026-10-31T23:00',total:137600,note:'月末'},{id:uid(),date:'2026-11-30T23:00',total:124500,note:'月末'}];
+  S.settings = {...DEF.settings, rate:9.3};
+  save(); fillSettings(); fillSelects(); renderAll(); showTab('dash');
+}
+$('#demo1').onclick = demo; $('#demo2').onclick = demo;
+
+// ---------- tabs ----------
+function showTab(k){ $$('nav button').forEach(b=>b.classList.toggle('on', b.dataset.tab===k)); $$('section[id^=tab-]').forEach(s=>s.classList.toggle('hidden', s.id!=='tab-'+k)); try{ sessionStorage.setItem('lx-tab',k) }catch(e){} }
+$$('nav button').forEach(b => b.onclick = () => showTab(b.dataset.tab));
+document.addEventListener('click', e => { if (e.target.dataset.go) showTab(e.target.dataset.go) });
+
+function renderAll(){ renderDash(); renderTx(); renderSnaps() }
+fillSettings(); resetTxForm(); snf.date.value = nowLocal(); renderAll();
+let t0 = 'dash'; try { t0 = sessionStorage.getItem('lx-tab') || 'dash' } catch(e) {} showTab(t0);
+})();
+</script>
+</body>
+</html>
