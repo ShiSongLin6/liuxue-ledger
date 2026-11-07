@@ -203,6 +203,8 @@ let S;
 function load(){ try{ S = JSON.parse(localStorage.getItem(KEY)) || null }catch(e){ S = null } if(!S) S = structuredClone(DEF); S.settings = {...DEF.settings, ...S.settings}; S.tx ??= []; S.snaps ??= []; }
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)) }catch(e){ alert('保存失败：浏览器不允许本地存储（可能是无痕模式）。请导出备份。') } }
 load();
+// demo data loaded by the first release carried no flag: recognise it by its fixed snapshots
+if (!S.demo && S.snaps.length === 3 && S.snaps.map(s=>s.total).join() === '142000,137600,124500' && S.tx.some(t=>t.item==='语言班学费' && t.paid==='51150')) S.demo = true;
 
 const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
 const esc = t => String(t ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
