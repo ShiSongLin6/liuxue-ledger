@@ -67,6 +67,10 @@ footer{margin-top:40px;color:var(--mute);font-size:12px;text-align:center}
   <span>👀 这是<b>示例数据</b>（一个虚构的留学生），先看看整体效果。准备好了就开始记你自己的账。</span>
   <button class="b p" id="exitDemo">退出示例，开始记我的账</button>
 </div>
+<div id="backupBar" class="alert" style="margin-top:14px;display:none;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+  <span id="backupMsg"></span>
+  <span class="btns"><button class="b p" id="backupNow">⬇ 现在导出备份</button><button class="b" id="backupLater">过 3 天再提醒</button></span>
+</div>
 <nav>
   <button data-tab="dash" class="on">📊 看板</button>
   <button data-tab="tx">✍️ 记账</button>
@@ -162,7 +166,7 @@ footer{margin-top:40px;color:var(--mute);font-size:12px;text-align:center}
       <button class="b" id="importCsvBtn">⬆ 从 CSV 导入流水</button><input type="file" id="importCsv" accept=".csv,text/csv" class="hidden">
     </div>
     <p class="note">CSV 列：日期,项目,金额,币种,实付本币,性质,类别,账户,备注。日期写成 2026-11-04 13:05。可以用 Excel 编辑后「另存为 CSV（UTF-8）」。</p>
-    <p class="note">换电脑或清理浏览器前，记得先导出备份。</p>
+    <p class="note">换电脑或清理浏览器前，记得先导出备份。超过 14 天没备份，看板顶部会提醒你。</p>
   </div>
   <h2>示例与清空</h2>
   <div class="card btns">
@@ -469,7 +473,20 @@ stf.addEventListener('submit', e => { e.preventDefault(); const f = Object.fromE
 // ---------- import / export ----------
 function download(name, text, type){ const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text],{type})); a.download = name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 1000) }
 const today = () => new Date().toISOString().slice(0,10);
-$('#exportJson').onclick = () => download(`留学记账备份-${today()}.json`, JSON.stringify(S,null,2), 'application/json');
+// 备份：导出后记下时间；数据只在浏览器里，换手机或清缓存就没了，所以超过 14 天没备份就在顶部提醒
+const exportBackup = () => { S.lastBackup = Date.now(); delete S.snoozeBackup; save(); download(`留学记账备份-${today()}.json`, JSON.stringify(S,null,2), 'application/json'); renderBackup() };
+function renderBackup(){
+  const bar = $('#backupBar'), n = S.tx.length, now = Date.now();
+  const since = S.lastBackup ? Math.floor((now - S.lastBackup)/864e5) : null;
+  const due = !S.demo && n >= 10 && (since === null || since >= 14) && !(S.snoozeBackup && now < S.snoozeBackup);
+  bar.style.display = due ? 'flex' : 'none';
+  if (due) $('#backupMsg').innerHTML = since === null
+    ? `💾 你已经记了 <b>${n}</b> 笔，还从没备份过。数据只存在这个浏览器里，换手机、清缓存就会丢。`
+    : `💾 已经 <b>${since}</b> 天没备份了（现在 ${n} 笔）。导出一份备份文件存到网盘或发给自己。`;
+}
+$('#exportJson').onclick = exportBackup;
+$('#backupNow').onclick = exportBackup;
+$('#backupLater').onclick = () => { S.snoozeBackup = Date.now() + 3*864e5; save(); renderBackup() };
 $('#importJsonBtn').onclick = () => $('#importJson').click();
 $('#importJson').onchange = async e => { const f = e.target.files[0]; if (!f) return; try { const d = JSON.parse(await f.text()); if (!Array.isArray(d.tx)) throw 0; if (!confirm(`导入后会覆盖当前数据（${d.tx.length} 笔流水）。继续？`)) return; S = {...structuredClone(DEF), ...d, settings:{...DEF.settings, ...d.settings}}; save(); fillSettings(); fillSelects(); renderAll() } catch(err) { alert('文件格式不对') } e.target.value='' };
 const CSV_HEAD = ['日期','项目','金额','币种','实付本币','性质','类别','账户','备注'];
@@ -540,7 +557,7 @@ function showTab(k){ $$('nav button').forEach(b=>b.classList.toggle('on', b.data
 $$('nav button').forEach(b => b.onclick = () => showTab(b.dataset.tab));
 document.addEventListener('click', e => { if (e.target.dataset.go) showTab(e.target.dataset.go) });
 
-function renderAll(){ $('#demoBar').classList.toggle('hidden', !S.demo); $('#demoBar').style.display = S.demo ? 'flex' : 'none'; renderDash(); renderTx(); renderSnaps() }
+function renderAll(){ $('#demoBar').classList.toggle('hidden', !S.demo); $('#demoBar').style.display = S.demo ? 'flex' : 'none'; renderDash(); renderTx(); renderSnaps(); renderBackup() }
 fillSettings(); resetTxForm(); snf.date.value = nowLocal(); renderAll();
 let t0 = 'dash'; try { t0 = sessionStorage.getItem('lx-tab') || 'dash' } catch(e) {} showTab(t0);
 // first visit with no data: show the demo first so people see the whole picture
