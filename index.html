@@ -210,6 +210,8 @@ const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAl
 const esc = t => String(t ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const num = v => { const x = parseFloat(v); return isNaN(x) ? 0 : x };
 const fmt = (v,d=0) => (v<0?'−':'') + S.settings.homeSym + Math.abs(v).toLocaleString('zh-CN',{minimumFractionDigits:d,maximumFractionDigits:d});
+const neg = (v,d=0) => v ? '−' + fmt(Math.abs(v),d) : fmt(0,d);
+const pos = (v,d=0) => v ? '+' + fmt(Math.abs(v),d) : fmt(0,d);
 const ffmt = v => S.settings.foreignSym + Math.abs(v).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2});
 const dshort = s => { const m = String(s||'').match(/(\d{4})-(\d\d)-(\d\d)[T ](\d\d):(\d\d)/); if(!m) return String(s||'').slice(5,10); return `${m[2]}-${m[3]}` + ((m[4]!=='00'||m[5]!=='00') ? ` ${m[4]}:${m[5]}` : '') };
 const uid = () => Math.random().toString(36).slice(2,10) + Date.now().toString(36).slice(-4);
@@ -264,9 +266,9 @@ function renderDash(){
 
   $('#kpis').innerHTML = [
     ['当前总资产', latest ? fmt(num(latest.total)) : '—', latest ? `快照 ${String(latest.date).slice(0,10)}` : '去「资产快照」记一次'],
-    [`${cur.ym} 生活花销`, fmt(cur.living), cur.fLiving ? `其中 ${st.foreign} ${ffmt(cur.fLiving)}` : ''],
-    [`${cur.ym} 真实收入`, `<span class="in">${fmt(cur.income)}</span>`, cur.pass ? `不计过路款 ${fmt(cur.pass)}` : ''],
-    ['学业总成本', fmt(eduTotal), '含家庭代付']
+    [`${cur.ym} 生活花销`, `<span class="out">${neg(cur.living)}</span>`, cur.fLiving ? `其中 ${st.foreign} −${ffmt(cur.fLiving)}` : ''],
+    [`${cur.ym} 真实收入`, `<span class="in">${pos(cur.income)}</span>`, cur.pass ? `不计过路款 ±${fmt(cur.pass)}` : ''],
+    ['学业总成本', `<span class="out">${neg(eduTotal)}</span>`, '含家庭代付']
   ].map(([l,v,s]) => `<div class="card kpi"><div class="l">${l}</div><div class="v">${v}</div><div class="s">${s}</div></div>`).join('');
 
   const eduTag = t => /学业刚性/.test(t.type) ? '<span class="tag">学业</span>' : '';
@@ -284,12 +286,12 @@ function renderDash(){
     const nBig = m.bigIn.length + m.bigOut.length;
     const sumIn = m.bigIn.reduce((a,t)=>a+t.cny,0), sumOut = m.bigOut.reduce((a,t)=>a+t.cny,0);
     return `<div class="card"><div class="ym">${m.ym}</div>
-      <div class="big out">${fmt(m.living)}</div><div class="mute" style="font-size:12px">本月生活花销${m.fLiving?` · ${st.foreign} ${ffmt(m.fLiving)}`:''} ${cmp}</div>
+      <div class="big out">${neg(m.living)}</div><div class="mute" style="font-size:12px">本月生活花销${m.fLiving?` · ${st.foreign} −${ffmt(m.fLiving)}`:''} ${cmp}</div>
       <div style="margin-top:10px">
-        <div class="row"><span class="k">🍚 日常生活${m.dailyFam?`<span class="tag">含家庭代付 ${fmt(m.dailyFam)}</span>`:''}</span><span>${fmt(m.daily,2)}</span></div>
-        <div class="row"><span class="k">🔁 固定订阅</span><span>${fmt(m.fixed,2)}</span></div>
-        <div class="row"><span class="k">🛍 偶发大额</span><span>${fmt(m.occ,2)}</span></div>
-        <div class="row"><span class="k">💰 真实收入</span><span class="in">${fmt(m.income,2)}</span></div>
+        <div class="row"><span class="k">🍚 日常生活${m.dailyFam?`<span class="tag">含家庭代付 ${neg(m.dailyFam)}</span>`:''}</span><span class="out">${neg(m.daily,2)}</span></div>
+        <div class="row"><span class="k">🔁 固定订阅</span><span class="out">${neg(m.fixed,2)}</span></div>
+        <div class="row"><span class="k">🛍 偶发大额</span><span class="out">${neg(m.occ,2)}</span></div>
+        <div class="row"><span class="k">💰 真实收入</span><span class="in">${pos(m.income,2)}</span></div>
       </div>
       <div style="margin-top:10px;border-top:1px solid var(--line);padding-top:6px">
         ${m.maxIn ? line('⬇ 最大收入', m.maxIn, 'in') : ''}
@@ -301,7 +303,7 @@ function renderDash(){
         ${m.bigOut.length?`<div class="dir" style="display:flex;justify-content:space-between;margin-top:10px"><span>⬆ 大额支出</span><span class="out">−${fmt(sumOut)}</span></div>${bigList(m.bigOut,-1)}`:''}
         <div class="note">学业类支出带「学业」标签，不算进生活花销。</div>
       </details>` : ''}
-      ${(m.pass||m.fam)?`<div class="note">不计：过路款 ${fmt(m.pass)} · 家庭代付 ${fmt(m.fam)}</div>`:''}
+      ${(m.pass||m.fam)?`<div class="note">不计：过路款 ±${fmt(m.pass)} · 家庭代付 −${fmt(m.fam)}</div>`:''}
       </div>`;
   }).join('') + `<div class="card"><div class="ym">按此速度还能撑</div>
       <div class="big">${runway ? runway.toFixed(1)+' 个月' : '<span class="mute" style="font-size:20px">数据还不够</span>'}</div>
@@ -338,12 +340,12 @@ function renderDash(){
 
   // edu
   const E = tx.filter(t=>/学业刚性/.test(t.type));
-  $('#edu').innerHTML = E.length ? E.map(t=>`<div class="item"><span class="d">${dshort(t.date)}</span><span>${esc(t.item)}<span class="tag">${esc(t.cat)}</span>${/家庭代付/.test(t.type)?'<span class="tag">家庭代付</span>':''}</span><span class="a">${fmt(t.cny)}</span></div>`).join('') + `<div class="row" style="margin-top:6px;font-weight:700"><span>合计</span><span>${fmt(eduTotal)}</span></div><div class="note">学业刚性不计入每月生活花销。</div>` : '<div class="empty">还没有学费、住宿等记录。</div>';
+  $('#edu').innerHTML = E.length ? E.map(t=>`<div class="item"><span class="d">${dshort(t.date)}</span><span>${esc(t.item)}<span class="tag">${esc(t.cat)}</span>${/家庭代付/.test(t.type)?'<span class="tag">家庭代付</span>':''}</span><span class="a out">${neg(t.cny)}</span></div>`).join('') + `<div class="row" style="margin-top:6px;font-weight:700"><span>合计</span><span class="out">${neg(eduTotal)}</span></div><div class="note">学业刚性不计入每月生活花销。</div>` : '<div class="empty">还没有学费、住宿等记录。</div>';
 
   // cats
   const c = {}; tx.filter(t=>t.nat==='支出'||t.nat==='家庭代付').forEach(t => c[t.cat||'未分类'] = (c[t.cat||'未分类']||0) + t.cny);
   const CL = Object.entries(c).sort((a,b)=>b[1]-a[1]), tot = CL.reduce((a,[,v])=>a+v,0), mx = CL[0]?.[1] || 1;
-  $('#cats').innerHTML = CL.length ? CL.map(([k,v])=>`<div class="bar"><span>${esc(k)}</span><div><div class="t" style="width:${Math.max(1,v/mx*100)}%"></div></div><span class="n">${fmt(v)} · ${(v/tot*100).toFixed(1)}%</span></div>`).join('') : '<div class="empty">还没有支出。</div>';
+  $('#cats').innerHTML = CL.length ? CL.map(([k,v])=>`<div class="bar"><span>${esc(k)}</span><div><div class="t" style="width:${Math.max(1,v/mx*100)}%"></div></div><span class="n">${neg(v)} · ${(v/tot*100).toFixed(1)}%</span></div>`).join('') : '<div class="empty">还没有支出。</div>';
 
   // reconciliation
   if (snaps.length < 2) $('#rec').innerHTML = '<div class="empty">至少记两次资产快照才能倒推对账。建议每月末记一次。</div>';
