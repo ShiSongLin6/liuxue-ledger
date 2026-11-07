@@ -82,7 +82,7 @@ footer{margin-top:40px;color:var(--mute);font-size:12px;text-align:center}
   </div>
   <div id="dash-body">
     <div class="grid4" id="kpis"></div>
-    <h2>每月生活花销 <small>日常 + 固定月费 + 偶发大额，不含学费住宿</small></h2>
+    <h2>每月生活花销 <small>日常 + 固定订阅 + 偶发大额，不含学费住宿 · 最新一个月默认展开大额明细</small></h2>
     <div class="months" id="months"></div>
     <h2>总资产走势 <small>来自「资产快照」</small></h2>
     <div class="card" id="trend"></div>
@@ -170,8 +170,8 @@ footer{margin-top:40px;color:var(--mute);font-size:12px;text-align:center}
   <h2>口径说明</h2>
   <div class="card" style="font-size:13px">
     <p><b>性质</b>：收入（真正给你的钱）· 支出 · 家庭代付（家里替你付的，算你的消费、不算你账户的钱）· 过路款（别人转来、你再转走）· 资产转移（自己账户之间、换汇）。只有「收入」算进真实收入。</p>
-    <p><b>支出类型</b>（自动）：学费/语言班/住宿/签证与杂费 → 学业刚性（单独计，不算月花销）；订阅/话费 → 固定月费；餐饮/日用与个护/交通通讯/生活开销/购物 → 日常生活；其他支出 → 偶发大额。</p>
-    <p><b>月生活花销</b> = 日常生活（含家庭代付的部分）+ 固定月费 + 偶发大额。</p>
+    <p><b>支出类型</b>（自动）：学费/语言班/住宿/签证与杂费 → 学业刚性（单独计，不算月花销）；订阅/话费 → 固定订阅（每月自动扣的钱，不是家里打来的钱）；餐饮/日用与个护/交通通讯/生活开销/购物 → 日常生活；其他支出 → 偶发大额。</p>
+    <p><b>月生活花销</b> = 日常生活（含家庭代付的部分）+ 固定订阅 + 偶发大额。</p>
     <p><b>余额倒推</b>：两次快照之间，倒推支出 = 期初总资产 − 期末总资产 + 期间收入 + 期间过路款进出相抵后的净额；未记录差额 = 倒推支出 − 你记了的支出。差额大说明有钱花了没记。</p>
   </div>
 </section>
@@ -247,9 +247,11 @@ function renderDash(){
   const months = {};
   for (const t of tx) {
     if (!t.ym) continue;
-    const m = months[t.ym] ??= {ym:t.ym,daily:0,dailyFam:0,fixed:0,occ:0,fLiving:0,income:0,pass:0,fam:0,largest:null,cnt:0};
+    const m = months[t.ym] ??= {ym:t.ym,daily:0,dailyFam:0,fixed:0,occ:0,fLiving:0,income:0,pass:0,fam:0,largest:null,maxIn:null,maxOut:null,bigIn:[],bigOut:[],cnt:0};
     if (LIVING(t)) { m.cnt++; if (/^日常生活/.test(t.type)) { m.daily += t.cny; if (/家庭代付/.test(t.type)) m.dailyFam += t.cny } else if (t.type==='固定月费') m.fixed += t.cny; else m.occ += t.cny; m.fLiving += t.foreignAmt; if (!m.largest || t.cny > m.largest.cny) m.largest = t }
     if (t.nat==='收入') m.income += t.cny; if (t.nat==='过路款') m.pass += t.cny; if (t.nat==='家庭代付') m.fam += t.cny;
+    if (t.dir==='入账') { if (!m.maxIn || t.cny > m.maxIn.cny) m.maxIn = t; if (['①','②','③'].includes(t.tier)) m.bigIn.push(t) }
+    if (t.dir==='出账') { if (!m.maxOut || t.cny > m.maxOut.cny) m.maxOut = t; if (['①','②','③'].includes(t.tier)) m.bigOut.push(t) }
   }
   const ml = Object.values(months).sort((a,b)=>a.ym<b.ym?1:-1); ml.forEach(m => m.living = m.daily + m.fixed + m.occ);
   const cur = ml[0] || {ym:'—',living:0,income:0,pass:0,fLiving:0};
@@ -267,21 +269,37 @@ function renderDash(){
     ['学业总成本', fmt(eduTotal), '含家庭代付']
   ].map(([l,v,s]) => `<div class="card kpi"><div class="l">${l}</div><div class="v">${v}</div><div class="s">${s}</div></div>`).join('');
 
-  $('#months').innerHTML = ml.filter(m=>m.cnt>0||m.income>0).map(m => {
+  const eduTag = t => /学业刚性/.test(t.type) ? '<span class="tag">学业</span>' : '';
+  const line = (label, t, cls) => `<div class="row"><span class="k">${label}</span><span style="text-align:right">${esc(t.item)}${eduTag(t)} <b class="${cls}">${cls==='in'?'+':'−'}${fmt(t.cny)}</b></span></div>`;
+  const bigList = (L, sign) => { let h = ''; for (const k of ['①','②','③']) { const T = L.filter(t=>t.tier===k).sort((a,b)=>b.cny-a.cny); if (!T.length) continue;
+      h += `<div class="tier">${tierName(k)}</div>` + T.map(t=>`<div class="item"><span class="d">${dshort(t.date)}</span><span>${esc(t.item)}${eduTag(t)}</span><span class="a ${sign>0?'in':'out'}">${sign>0?'+':'−'}${fmt(t.cny)}</span></div>`).join('') } return h };
+  const shown = ml.filter(m=>m.cnt>0||m.income>0||m.maxOut);
+  $('#months').innerHTML = shown.map((m,idx) => {
     const base = median(ml.filter(x=>x.ym<m.ym&&x.cnt>0).map(x=>x.daily));
     let cmp = '<span class="tag">暂无基线</span>';
     if (base) { const p=(m.daily-base)/base*100; cmp = `<span class="tag ${Math.abs(p)>30?'warn':''}">日常 vs 基线 ${p>=0?'↑':'↓'}${Math.abs(p).toFixed(0)}%</span>` }
+    const nBig = m.bigIn.length + m.bigOut.length;
+    const sumIn = m.bigIn.reduce((a,t)=>a+t.cny,0), sumOut = m.bigOut.reduce((a,t)=>a+t.cny,0);
     return `<div class="card"><div class="ym">${m.ym}</div>
       <div class="big out">${fmt(m.living)}</div><div class="mute" style="font-size:12px">本月生活花销${m.fLiving?` · ${st.foreign} ${ffmt(m.fLiving)}`:''} ${cmp}</div>
       <div style="margin-top:10px">
-        <div class="row"><span class="k">🍚 日常生活</span><span>${fmt(m.daily,2)}</span></div>
-        <div class="row"><span class="k">🔁 固定月费</span><span>${fmt(m.fixed,2)}</span></div>
+        <div class="row"><span class="k">🍚 日常生活${m.dailyFam?`<span class="tag">含家庭代付 ${fmt(m.dailyFam)}</span>`:''}</span><span>${fmt(m.daily,2)}</span></div>
+        <div class="row"><span class="k">🔁 固定订阅</span><span>${fmt(m.fixed,2)}</span></div>
         <div class="row"><span class="k">🛍 偶发大额</span><span>${fmt(m.occ,2)}</span></div>
-        ${m.dailyFam?`<div class="row"><span class="k">其中家庭代付</span><span class="mute">${fmt(m.dailyFam,2)}</span></div>`:''}
         <div class="row"><span class="k">💰 真实收入</span><span class="in">${fmt(m.income,2)}</span></div>
-        ${(m.pass||m.fam)?`<div class="row"><span class="k mute">不计：过路款 / 家庭代付</span><span class="mute">${fmt(m.pass)} / ${fmt(m.fam)}</span></div>`:''}
-        ${m.largest?`<div class="row"><span class="k">最大一笔生活支出</span><span>${esc(m.largest.item)} · ${fmt(m.largest.cny)}</span></div>`:''}
-      </div></div>`;
+      </div>
+      <div style="margin-top:10px;border-top:1px solid var(--line);padding-top:6px">
+        ${m.maxIn ? line('⬇ 最大收入', m.maxIn, 'in') : ''}
+        ${m.maxOut ? line('⬆ 最大支出', m.maxOut, 'out') : ''}
+        ${m.largest && m.largest !== m.maxOut ? line('🍚 最大生活支出', m.largest, 'out') : ''}
+      </div>
+      ${nBig ? `<details ${idx===0?'open':''} style="border-top:0"><summary style="font-weight:400;font-size:12px;color:var(--accent);padding:8px 0 4px">展开全部大额（共 ${nBig} 笔）</summary>
+        ${m.bigIn.length?`<div class="dir" style="display:flex;justify-content:space-between"><span>⬇ 大额收入</span><span class="in">+${fmt(sumIn)}</span></div>${bigList(m.bigIn,1)}`:''}
+        ${m.bigOut.length?`<div class="dir" style="display:flex;justify-content:space-between;margin-top:10px"><span>⬆ 大额支出</span><span class="out">−${fmt(sumOut)}</span></div>${bigList(m.bigOut,-1)}`:''}
+        <div class="note">学业类支出带「学业」标签，不算进生活花销。</div>
+      </details>` : ''}
+      ${(m.pass||m.fam)?`<div class="note">不计：过路款 ${fmt(m.pass)} · 家庭代付 ${fmt(m.fam)}</div>`:''}
+      </div>`;
   }).join('') + `<div class="card"><div class="ym">按此速度还能撑</div>
       <div class="big">${runway ? runway.toFixed(1)+' 个月' : '<span class="mute" style="font-size:20px">数据还不够</span>'}</div>
       <div class="mute" style="font-size:12px">= 当前总资产 ÷ 月生活花销中位数${medLiving?`（${fmt(medLiving)}）`:''}</div>
