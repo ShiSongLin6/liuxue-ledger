@@ -63,6 +63,10 @@ footer{margin-top:40px;color:var(--mute);font-size:12px;text-align:center}
   <div><h1>留学记账看板</h1><div class="sub">数据只保存在你这台设备的浏览器里，不会上传到任何服务器。</div></div>
   <div class="sub" id="stamp"></div>
 </header>
+<div id="demoBar" class="info hidden" style="margin-top:14px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+  <span>👀 你正在看<b>示例数据</b>（虚构的留学生）。退出后会回到你自己的数据。</span>
+  <button class="b p" id="exitDemo">退出示例</button>
+</div>
 <nav>
   <button data-tab="dash" class="on">📊 看板</button>
   <button data-tab="tx">✍️ 记账</button>
@@ -420,8 +424,9 @@ $('#importCsv').onchange = async e => { const f = e.target.files[0]; if (!f) ret
 $('#wipe').onclick = () => { if (confirm('清空全部流水、快照和设置？建议先导出备份。') && confirm('真的清空？无法恢复。')) { S = structuredClone(DEF); save(); fillSettings(); resetTxForm(); renderAll() } };
 
 // ---------- demo (fictional) ----------
+const PRE = KEY + '-before-demo';
 function demo(){
-  if ((S.tx.length || S.snaps.length) && !confirm('示例数据会替换当前数据。继续？')) return;
+  if (!S.demo) { try { localStorage.setItem(PRE, JSON.stringify(S)) } catch(e) {} }
   const t = (date,item,nat,amt,cur,cat,acct,note='',paid='') => ({id:uid(),date,item,nat,amt,cur,paid,cat,acct,note});
   const G='GBP', C='CNY', tx = [
     t('2026-05-20T10:00','语言班学费','支出',5500,G,'语言班','国内银行','暑期语言班','51150'),
@@ -447,16 +452,23 @@ function demo(){
   S.tx = tx;
   S.snaps = [{id:uid(),date:'2026-09-30T23:00',total:142000,note:'月末'},{id:uid(),date:'2026-10-31T23:00',total:137600,note:'月末'},{id:uid(),date:'2026-11-30T23:00',total:124500,note:'月末'}];
   S.settings = {...DEF.settings, rate:9.3};
+  S.demo = true;
   save(); fillSettings(); fillSelects(); renderAll(); showTab('dash');
 }
-$('#demo1').onclick = demo; $('#demo2').onclick = demo;
+function exitDemo(){
+  let prev = null; try { prev = JSON.parse(localStorage.getItem(PRE)) } catch(e) {}
+  S = prev ? {...structuredClone(DEF), ...prev, settings:{...DEF.settings, ...prev.settings}} : structuredClone(DEF);
+  delete S.demo; try { localStorage.removeItem(PRE) } catch(e) {}
+  save(); fillSettings(); resetTxForm(); renderAll(); showTab('dash');
+}
+$('#demo1').onclick = demo; $('#demo2').onclick = demo; $('#exitDemo').onclick = exitDemo;
 
 // ---------- tabs ----------
 function showTab(k){ $$('nav button').forEach(b=>b.classList.toggle('on', b.dataset.tab===k)); $$('section[id^=tab-]').forEach(s=>s.classList.toggle('hidden', s.id!=='tab-'+k)); try{ sessionStorage.setItem('lx-tab',k) }catch(e){} }
 $$('nav button').forEach(b => b.onclick = () => showTab(b.dataset.tab));
 document.addEventListener('click', e => { if (e.target.dataset.go) showTab(e.target.dataset.go) });
 
-function renderAll(){ renderDash(); renderTx(); renderSnaps() }
+function renderAll(){ $('#demoBar').classList.toggle('hidden', !S.demo); $('#demoBar').style.display = S.demo ? 'flex' : 'none'; renderDash(); renderTx(); renderSnaps() }
 fillSettings(); resetTxForm(); snf.date.value = nowLocal(); renderAll();
 let t0 = 'dash'; try { t0 = sessionStorage.getItem('lx-tab') || 'dash' } catch(e) {} showTab(t0);
 })();
