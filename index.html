@@ -64,8 +64,8 @@ footer{margin-top:40px;color:var(--mute);font-size:12px;text-align:center}
   <div class="sub" id="stamp"></div>
 </header>
 <div id="demoBar" class="info hidden" style="margin-top:14px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
-  <span>👀 你正在看<b>示例数据</b>（虚构的留学生）。退出后会回到你自己的数据。</span>
-  <button class="b p" id="exitDemo">退出示例</button>
+  <span>👀 这是<b>示例数据</b>（一个虚构的留学生），先看看整体效果。准备好了就开始记你自己的账。</span>
+  <button class="b p" id="exitDemo">退出示例，开始记我的账</button>
 </div>
 <nav>
   <button data-tab="dash" class="on">📊 看板</button>
@@ -78,7 +78,7 @@ footer{margin-top:40px;color:var(--mute);font-size:12px;text-align:center}
 <section id="tab-dash">
   <div id="dash-empty" class="card empty hidden">
     <p>还没有数据。</p>
-    <div class="btns" style="justify-content:center"><button class="b p" data-go="tx">开始记第一笔</button><button class="b" id="demo1">先看看示例数据</button></div>
+    <div class="btns" style="justify-content:center"><button class="b p" id="demo1">先看示例</button><button class="b" data-go="tx">开始记第一笔</button></div>
   </div>
   <div id="dash-body">
     <div class="grid4" id="kpis"></div>
@@ -461,7 +461,7 @@ function exitDemo(){
   let prev = null; try { prev = JSON.parse(localStorage.getItem(PRE)) } catch(e) {}
   S = prev ? {...structuredClone(DEF), ...prev, settings:{...DEF.settings, ...prev.settings}} : structuredClone(DEF);
   delete S.demo; try { localStorage.removeItem(PRE) } catch(e) {}
-  save(); fillSettings(); resetTxForm(); renderAll(); showTab('dash');
+  save(); fillSettings(); resetTxForm(); renderAll(); showTab(S.tx.length ? 'dash' : 'tx');
 }
 $('#demo1').onclick = demo; $('#demo2').onclick = demo; $('#exitDemo').onclick = exitDemo;
 
@@ -473,6 +473,9 @@ document.addEventListener('click', e => { if (e.target.dataset.go) showTab(e.tar
 function renderAll(){ $('#demoBar').classList.toggle('hidden', !S.demo); $('#demoBar').style.display = S.demo ? 'flex' : 'none'; renderDash(); renderTx(); renderSnaps() }
 fillSettings(); resetTxForm(); snf.date.value = nowLocal(); renderAll();
 let t0 = 'dash'; try { t0 = sessionStorage.getItem('lx-tab') || 'dash' } catch(e) {} showTab(t0);
+// first visit with no data: show the demo first so people see the whole picture
+let seen = false; try { seen = !!localStorage.getItem(KEY + '-seen-demo'); localStorage.setItem(KEY + '-seen-demo', '1') } catch(e) {}
+if (!seen && !S.tx.length && !S.snaps.length) demo();
 })();
 </script>
 </body>
