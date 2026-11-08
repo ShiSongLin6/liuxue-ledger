@@ -1,8 +1,16 @@
-# 留学记账看板
+# 留学记账看板 · Student Budget Dashboard
 
-给留学生用的记账看板，打开网页就能用，不用下载，也不用注册。
+**留学生活每月花多少，现有的钱还能撑多久？**
 
-**👉 在线使用：https://shisonglin6.github.io/liuxue-ledger/**
+给留学生的多币种记账看板：把日常生活费、学费住宿和资产变化分开看。无需注册，无需绑定银行，账目保存在当前设备的浏览器里。
+
+**[打开在线版](https://shisonglin6.github.io/liuxue-ledger/) → 先看示例（虚构数据）**
+
+> **English overview:** A single-file budget dashboard for international students. Track multi-currency spending, separate tuition and accommodation from living costs, and estimate how long your savings could last at your recorded spending rate. No signup or bank connection. **The interface is currently in Chinese.** Data stays in this browser; export a JSON backup regularly. There is no automatic cross-device sync.
+
+适合：想手动整理留学开销、区分家里代付和自己账户余额的人。金额与汇率需要自行填写；“还能撑多久”是基于已记数据的估算。
+
+---
 
 ## 怎么用
 
