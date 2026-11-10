@@ -6,7 +6,7 @@
 
 **[打开在线版](https://shisonglin6.github.io/liuxue-ledger/) → 先看示例（虚构数据）**
 
-> **English overview:** A single-file budget dashboard for international students. Track multi-currency spending, separate tuition and accommodation from living costs, and estimate how long your savings could last at your recorded spending rate. No signup or bank connection. **The interface is currently in Chinese.** Data stays in this browser; export a JSON backup regularly. There is no automatic cross-device sync.
+> **English overview:** A single-file budget dashboard for international students. Track multi-currency spending, separate tuition and accommodation from living costs, and estimate how long your savings could last at your recorded spending rate. No signup or bank connection. **The interface is bilingual (Chinese / English)**: it opens in English when your browser language isn't Chinese, and the EN / 中文 button in the top-right corner switches it at any time. Data stays in this browser; export a JSON backup regularly. There is no automatic cross-device sync.
 
 适合：想手动整理留学开销、区分家里代付和自己账户余额的人。金额与汇率需要自行填写；“还能撑多久”是基于已记数据的估算。
 
@@ -20,6 +20,8 @@
 4. **定期导出备份。** 数据只存在你这台设备的浏览器里，超过 14 天没备份，看板顶部会提醒你。
 
 手机上可以用浏览器的「添加到主屏幕」，像 App 一样打开。
+
+右上角的「EN / 中文」按钮可以切换中英文界面，切换不影响已记的数据。
 
 ## 它能回答的问题
 
